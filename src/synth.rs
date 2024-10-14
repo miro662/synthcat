@@ -1,11 +1,14 @@
-use std::{f32::consts::PI, ops::Deref, sync::Arc};
+use std::{ops::Deref, sync::Arc};
 
 use mlua::{FromLua, Lua, UserData};
+use wave::Wave;
+
+mod wave;
 
 #[derive(Clone, Debug)]
 pub enum Synth {
     Constant { value: f32 },
-    Wave { frequency: SynthRef },
+    Wave(Wave),
 }
 
 #[derive(Clone, Debug)]
@@ -40,21 +43,13 @@ impl<'lua> FromLua<'lua> for SynthRef {
 
 impl Synth {
     pub fn install_constructors(lua: &mut Lua) {
-        lua.globals()
-            .set(
-                "wave",
-                lua.create_function(|_, frequency: SynthRef| {
-                    Ok(SynthRef(Arc::new(Synth::Wave { frequency })))
-                })
-                .unwrap(),
-            )
-            .unwrap();
+        lua.globals().set("wave", Wave::constructor(lua)).unwrap();
     }
 
     pub fn sample(&self, phase: f32) -> f32 {
         match self {
             Self::Constant { value } => *value,
-            Self::Wave { frequency } => (phase * frequency.sample(phase) * 2.0 * PI).sin(),
+            Self::Wave(wave) => wave.sample(phase),
         }
     }
 }
