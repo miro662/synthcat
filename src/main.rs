@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, fs, path::PathBuf, thread, time::Duration};
+use std::{fs, path::PathBuf, thread, time::Duration};
 
 use clap::Parser;
 use mlua::{AnyUserData, Lua};
@@ -51,7 +51,12 @@ fn main() {
     let code = fs::read_to_string(args.script_path).expect("Cannot read script file");
     let mut lua = Lua::new();
     Synth::install_constructors(&mut lua);
-    let result: SynthRef = lua.load(&code).eval::<AnyUserData>().unwrap().take().unwrap();
+    let result: SynthRef = lua
+        .load(&code)
+        .eval::<AnyUserData>()
+        .unwrap()
+        .take()
+        .unwrap();
     println!("{:?}", result);
 
     let sdl = sdl2::init().unwrap();
@@ -62,7 +67,7 @@ fn main() {
         samples: None,
     };
     let device = sdl_audio
-        .open_playback(None, &spec, |spec| Callback::new( result, spec))
+        .open_playback(None, &spec, |spec| Callback::new(result, spec))
         .unwrap();
     device.resume();
 
