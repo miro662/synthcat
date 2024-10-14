@@ -2,10 +2,12 @@ use std::{ops::Deref, sync::Arc};
 
 use arithmetic::{Arithmetic, ArithmeticOp};
 use mlua::{FromLua, Lua, UserData};
+use shift::Shift;
 use spline::Spline;
 use wave::Wave;
 
 mod arithmetic;
+mod shift;
 mod spline;
 mod wave;
 
@@ -15,6 +17,7 @@ pub enum Synth {
     Wave(Wave),
     Arithmetic(Arithmetic),
     Spline(Spline),
+    Shift(Shift),
 }
 
 #[derive(Clone, Debug)]
@@ -66,6 +69,7 @@ impl Synth {
         lua.globals()
             .set("spline", Spline::constructor(lua))
             .unwrap();
+        lua.globals().set("shift", Shift::constructor(lua)).unwrap();
     }
 
     pub fn sample(&self, phase: f32) -> f32 {
@@ -74,6 +78,7 @@ impl Synth {
             Self::Wave(wave) => wave.sample(phase),
             Self::Arithmetic(arithmetic) => arithmetic.sample(phase),
             Self::Spline(spline) => spline.sample(phase),
+            Self::Shift(shift) => shift.sample(phase),
         }
     }
 }
