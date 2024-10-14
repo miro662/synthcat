@@ -1,1 +1,0 @@
-return wave(440)
