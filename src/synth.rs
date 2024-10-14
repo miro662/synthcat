@@ -2,9 +2,11 @@ use std::{ops::Deref, sync::Arc};
 
 use arithmetic::{Arithmetic, ArithmeticOp};
 use mlua::{FromLua, Lua, UserData};
+use spline::Spline;
 use wave::Wave;
 
 mod arithmetic;
+mod spline;
 mod wave;
 
 #[derive(Clone, Debug)]
@@ -12,6 +14,7 @@ pub enum Synth {
     Constant(f32),
     Wave(Wave),
     Arithmetic(Arithmetic),
+    Spline(Spline),
 }
 
 #[derive(Clone, Debug)]
@@ -60,6 +63,9 @@ impl<'lua> FromLua<'lua> for SynthRef {
 impl Synth {
     pub fn install_constructors(lua: &mut Lua) {
         lua.globals().set("wave", Wave::constructor(lua)).unwrap();
+        lua.globals()
+            .set("spline", Spline::constructor(lua))
+            .unwrap();
     }
 
     pub fn sample(&self, phase: f32) -> f32 {
@@ -67,6 +73,7 @@ impl Synth {
             Self::Constant(value) => *value,
             Self::Wave(wave) => wave.sample(phase),
             Self::Arithmetic(arithmetic) => arithmetic.sample(phase),
+            Self::Spline(spline) => spline.sample(phase),
         }
     }
 }
