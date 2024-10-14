@@ -1,0 +1,2 @@
+PITCH = 440
+return PITCH
