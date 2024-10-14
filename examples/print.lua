@@ -1,2 +1,1 @@
-PITCH = 440
-return PITCH
+return wave(440)

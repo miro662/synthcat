@@ -1,8 +1,11 @@
 use std::{f32::consts::PI, fs, path::PathBuf, thread, time::Duration};
 
 use clap::Parser;
-use mlua::Lua;
+use mlua::{AnyUserData, Lua};
 use sdl2::audio::{AudioCallback, AudioSpec, AudioSpecDesired};
+use synth::{Synth, SynthRef};
+
+mod synth;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -10,16 +13,16 @@ struct Args {
     script_path: PathBuf,
 }
 
-struct Synth {
-    freq: f32,
+struct Callback {
+    synth: SynthRef,
     spec: AudioSpec,
     phase: f32,
 }
 
-impl Synth {
-    fn new(freq: f32, spec: AudioSpec) -> Synth {
-        Synth {
-            freq,
+impl Callback {
+    fn new(synth: SynthRef, spec: AudioSpec) -> Callback {
+        Callback {
+            synth,
             spec,
             phase: 0.0,
         }
@@ -32,12 +35,12 @@ impl Synth {
     }
 }
 
-impl AudioCallback for Synth {
+impl AudioCallback for Callback {
     type Channel = f32;
 
     fn callback(&mut self, buffer: &mut [f32]) {
         for sample in buffer.iter_mut() {
-            *sample = (self.freq * 2.0 * PI * self.phase).sin() * 0.2;
+            *sample = self.synth.sample(self.phase);
             self.next_sample();
         }
     }
@@ -46,8 +49,10 @@ impl AudioCallback for Synth {
 fn main() {
     let args = Args::parse();
     let code = fs::read_to_string(args.script_path).expect("Cannot read script file");
-    let lua = Lua::new();
-    let result = lua.load(&code).eval::<u64>().unwrap();
+    let mut lua = Lua::new();
+    Synth::install_constructors(&mut lua);
+    let result: SynthRef = lua.load(&code).eval::<AnyUserData>().unwrap().take().unwrap();
+    println!("{:?}", result);
 
     let sdl = sdl2::init().unwrap();
     let sdl_audio = sdl.audio().unwrap();
@@ -57,7 +62,7 @@ fn main() {
         samples: None,
     };
     let device = sdl_audio
-        .open_playback(None, &spec, |spec| Synth::new(result as f32, spec))
+        .open_playback(None, &spec, |spec| Callback::new( result, spec))
         .unwrap();
     device.resume();
 
